@@ -16,7 +16,7 @@ app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/', (_req, res) => {
-  res.send('Hello from Express + TypeScript + MongoDB!');
+  res.send('Server is running');
 });
 
 // MongoDB connection
