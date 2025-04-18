@@ -27,3 +27,5 @@ mongoose.connect(process.env.MONGO_URI || '', { dbName: 'test' })
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
+module.exports = app;
