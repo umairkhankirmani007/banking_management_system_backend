@@ -2,16 +2,19 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import authRoutes from './routes/auth';
 
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors()); // 👈 Enable CORS for all origins
+app.use(cors());
 app.use(express.json());
 
-// Basic route
+// Routes
+app.use('/api/auth', authRoutes);
+
+// Health check
 app.get('/', (_req, res) => {
   res.send('Hello from Express + TypeScript + MongoDB!');
 });
