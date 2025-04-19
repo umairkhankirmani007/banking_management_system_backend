@@ -1,5 +1,5 @@
 import express from "express";
-import User from "../models/User";
+import User from "../models/User.model";
 import { userUpdateSchema } from "../validator/user.validator";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import uploadImage from "../middleware/multer..middleware";
@@ -31,6 +31,29 @@ userRoutes.get("/", async (req: any, res: any) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating user details", error });
+  }
+});
+
+userRoutes.get("/all", async (req: any, res: any) => {
+  try {
+    const users = await User.find({ isVerified: true }).select(
+      "-password -otp -otpExpiresAt"
+    );
+    if (!users) {
+      return res.status(404).json({ message: "No users found" });
+    }
+    res.status(200).json({
+      message: "Users fetched successfully",
+      data: users.map((user) => ({
+        userId: user._id,
+        userName: user.userName,
+        email: user.email,
+        imageUrl: user.imageUrl,
+        age: user.age,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users", error });
   }
 });
 
