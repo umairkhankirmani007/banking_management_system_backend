@@ -7,7 +7,7 @@ import {
   verifyOtpSchema,
   refreshTokenSchema,
   requestNewOtpSchema,
-} from "../validator/authValidator";
+} from "../validator/auth.validator";
 import uploadImage from "../middleware/multer..middleware";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { generateOTP, getOTP, sendOTPEmail } from "../utils/otp";
@@ -30,7 +30,7 @@ authRoutes.post(
       return res.status(400).json({ message: error.details[0].message });
 
     try {
-      const { email, name, firstName, lastName, phoneNumber, age } = req.body;
+      const { email, userName, firstName, lastName, phoneNumber, age } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser)
@@ -51,7 +51,7 @@ authRoutes.post(
 
       const user = new User({
         email,
-        name,
+        userName,
         firstName,
         lastName,
         phoneNumber,
