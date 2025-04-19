@@ -13,9 +13,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// In-memory store for OTPs (could be extended to use Redis or database for production)
-let otpStore: Map<string, { otp: string; expiresAt: number }> = new Map();
-
 // Function to generate a random 6-digit OTP
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -94,10 +91,6 @@ const sendOTPEmail = async (email: string, otp: string) => {
               ${otp}
             </div>
             <p>This OTP is valid for the next 10 minutes. If you didn't request this, please ignore this email.</p>
-            <a href="#" class="btn">Verify Now</a>
-            <div class="footer">
-              <p>If you need assistance, visit our <a href="#">support page</a>.</p>
-            </div>
           </div>
         </body>
       </html>

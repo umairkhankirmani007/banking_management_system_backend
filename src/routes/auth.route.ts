@@ -6,8 +6,9 @@ import {
   setPasswordSchema,
   verifyOtpSchema,
   refreshTokenSchema,
+  requestNewOtpSchema,
 } from "../validator/authValidator";
-import uploadImage from "../middleware/multer";
+import uploadImage from "../middleware/multer..middleware";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { generateOTP, getOTP, sendOTPEmail } from "../utils/otp";
 import {
@@ -17,10 +18,10 @@ import {
 } from "../utils/jwt";
 import bcrypt from "bcryptjs";
 
-const router = express.Router();
+const authRoutes = express.Router();
 
 // Signup
-router.post(
+authRoutes.post(
   "/signup",
   uploadImage.single("image"),
   async (req: any, res: any) => {
@@ -68,7 +69,7 @@ router.post(
   }
 );
 // Verify OTP
-router.post("/verify-otp", async (req: any, res: any) => {
+authRoutes.post("/verify-otp", async (req: any, res: any) => {
   const { error } = verifyOtpSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
   const { email, otp } = req.body;
@@ -105,7 +106,7 @@ router.post("/verify-otp", async (req: any, res: any) => {
   }
 });
 
-router.post("/set-password", async (req: any, res: any) => {
+authRoutes.post("/set-password", async (req: any, res: any) => {
   // Validate request body using Joi schema
   const { error } = setPasswordSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -146,7 +147,7 @@ router.post("/set-password", async (req: any, res: any) => {
 });
 
 // Login
-router.post("/login", async (req: any, res: any) => {
+authRoutes.post("/login", async (req: any, res: any) => {
   // Validate request body using Joi schema
   const { error } = loginSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -188,6 +189,10 @@ router.post("/login", async (req: any, res: any) => {
         lastName: user.lastName,
         imageUrl: user.imageUrl,
         phoneNumber: user.phoneNumber,
+        userId: user._id,
+        age: user.age,
+        balance: user.balance,
+        isVerified: user.isVerified,
       },
     });
   } catch (err) {
@@ -196,7 +201,33 @@ router.post("/login", async (req: any, res: any) => {
   }
 });
 
-router.post("/refresh-token", (req: any, res: any) => {
+authRoutes.post("/request-otp", async (req: any, res: any) => {
+  const { error } = requestNewOtpSchema.validate(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User already verified" });
+    }
+    const otp = generateOTP();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+    await User.findOneAndUpdate(
+      { email },
+      { otp, otpExpiresAt: expiresAt }
+    );
+    await sendOTPEmail(email, otp);
+    return res.status(200).json({ message: "OTP sent to email" });
+  } catch (err) {
+    console.error("Error requesting OTP:", err);
+    return res.status(500).json({ message: "Error requesting OTP", error: err });
+  }
+});
+
+authRoutes.post("/refresh-token", (req: any, res: any) => {
   const { error } = refreshTokenSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
   const { refreshToken } = req.body;
@@ -233,4 +264,4 @@ router.post("/refresh-token", (req: any, res: any) => {
   }
 });
 
-export default router;
+export default authRoutes;

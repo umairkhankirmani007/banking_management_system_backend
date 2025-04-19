@@ -13,6 +13,7 @@ export interface IUser extends Document {
   otp: string;
   otpExpiresAt: Date;
   password: string;
+  balance: 0;
 }
 
 const UserSchema: Schema = new Schema(
@@ -27,6 +28,7 @@ const UserSchema: Schema = new Schema(
     isVerified: { type: Boolean, default: false },
     otp: { type: String, default: null },
     otpExpiresAt: { type: Date, default: null },
+    balance: { type: Number, default: 0 },
     password: { type: String },
   },
   { timestamps: true }

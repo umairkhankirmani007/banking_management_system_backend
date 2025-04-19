@@ -15,6 +15,10 @@ export const generateAccessToken = (user: any) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      userId: user._id,
+      phoneNumber: user.phoneNumber,
+      age: user.age,
+      isVerified: user.isVerified,
     },
     ACCESS_TOKEN_SECRET,
     { expiresIn: '15m' } // expires in 15 minutes
