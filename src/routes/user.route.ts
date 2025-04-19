@@ -1,6 +1,8 @@
 import express from "express";
 import User from "../models/User";
 import { userUpdateSchema } from "../validator/user.validator";
+import { uploadToCloudinary } from "../utils/cloudinary";
+import uploadImage from "../middleware/multer..middleware";
 const userRoutes = express.Router();
 
 userRoutes.get("/", async (req: any, res: any) => {
@@ -67,6 +69,48 @@ userRoutes.patch("/", async (req: any, res: any) => {
   }
 });
 
-userRoutes
+userRoutes.delete("/", async (req: any, res: any) => {
+  try {
+    const requestedUser = req.user;
+    const user = await User.findOneAndDelete({
+      _id: requestedUser.userId,
+    });
+    res.status(200).json({
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting user", error });
+  }
+});
+
+userRoutes.put(
+  "/profile-picture",
+  uploadImage.single("image"),
+  async (req: any, res: any) => {
+    try {
+      const requestedUser = req.user;
+      let imageUrl = "";
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+      imageUrl = await uploadToCloudinary(req.file.buffer);
+      const user = await User.findOneAndUpdate(
+        { _id: requestedUser.userId },
+        { imageUrl },
+        { new: true }
+      );
+      res.status(200).json({
+        message: "Profile picture updated successfully",
+        data: {
+          imageUrl: user!.imageUrl,
+        },
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error updating profile picture", error });
+    }
+  }
+);
 
 export default userRoutes;
