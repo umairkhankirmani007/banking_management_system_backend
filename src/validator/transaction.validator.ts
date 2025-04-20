@@ -5,3 +5,7 @@ export const transactionSchema = Joi.object({
   recipientId: Joi.string().required(),
   message: Joi.string().optional(),
 });
+
+export const transactionTopUpSchema = Joi.object({
+  amount: Joi.number().required(),
+});

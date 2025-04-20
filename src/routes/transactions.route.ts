@@ -3,8 +3,12 @@ import mongoose from "mongoose";
 import { verifyToken } from "../middleware/auth.middleware";
 import User from "../models/User.model";
 import Transactions from "../models/Transactions.model";
-import { transactionSchema } from "../validator/transaction.validator";
+import {
+  transactionSchema,
+  transactionTopUpSchema,
+} from "../validator/transaction.validator";
 import UserPayees from "../models/UserPayees.model";
+import CreditHistory from "../models/CreditHistory.model";
 
 const transactionRoutes = express.Router();
 
@@ -13,13 +17,12 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     const senderId = req.user?.userId;
     const { recipientId, amount, message } = req.body;
 
+    // Validate input
     if (!recipientId || !amount || amount <= 0) {
       return res.status(400).json({ error: "Invalid input" });
     }
@@ -28,59 +31,179 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
       return res.status(400).json({ error: "Cannot send to yourself" });
     }
 
-    const recipientExists = await User.findById(recipientId).session(session);
+    // Find sender and recipient
+    const [sender, recipient, recipientPayeeExists] = await Promise.all([
+      User.findById(senderId),
+      User.findById(recipientId),
+      UserPayees.findOne({
+        userId: senderId,
+        addedPayees: { $in: [recipientId] },
+      }),
+    ]);
 
-    if (!recipientExists) {
-      return res.status(404).json({ error: "Recipient not found" });
-    }
-
-    const sender = await User.findById(senderId).session(session);
-    const recipient = await User.findById(recipientId).session(session);
-
+    // Validate both users exist
     if (!sender || !recipient) {
       return res.status(404).json({ error: "Sender or recipient not found" });
     }
 
-    if (sender.balance < amount) {
-      return res.status(400).json({ error: "Insufficient balance" });
-    }
-
-    const recipientPayeeExists = await UserPayees.findOne({
-      userId: senderId,
-      addedPayees: { $in: [recipientId] },
-    }).session(session);
-    
+    // Check if recipient is a payee
     if (!recipientPayeeExists) {
       return res.status(400).json({ error: "Recipient is not a payee" });
     }
 
-    sender.balance -= amount;
-    recipient.balance += amount;
+    // Check sufficient balance
+    if (sender.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
 
-    await sender.save({ session });
-    await recipient.save({ session });
+    // Update balances - using atomic operations
+    await Promise.all([
+      User.findByIdAndUpdate(senderId, { $inc: { balance: -amount } }),
+      User.findByIdAndUpdate(recipientId, { $inc: { balance: amount } }),
+    ]);
 
+    // Get updated balances
+    const [updatedSender, updatedRecipient] = await Promise.all([
+      User.findById(senderId),
+      User.findById(recipientId),
+    ]);
+
+    // Create credit history entries
+    await CreditHistory.create([
+      {
+        userId: senderId,
+        status: "DEBITED",
+        amount,
+        isTopUp: false,
+      },
+      {
+        userId: recipientId,
+        status: "CREDITED",
+        amount,
+        isTopUp: false,
+      },
+    ]);
+
+    // Create transaction record
     const transaction = new Transactions({
       sender: sender._id,
       recipient: recipient._id,
       amount,
       status: "completed",
       message,
-      balanceAfterSender: sender.balance,
-      balanceAfterRecipient: recipient.balance,
+      balanceAfterSender: updatedSender?.balance || sender.balance - amount,
+      balanceAfterRecipient:
+        updatedRecipient?.balance || recipient.balance + amount,
       processedAt: new Date(),
     });
 
-    await transaction.save({ session });
+    await transaction.save();
 
-    await session.commitTransaction();
-    session.endSession();
+    return res.status(200).json({
+      success: true,
+      message: "Transaction completed successfully",
+    });
+  } catch (err) {
+    console.error("Transaction error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 
+transactionRoutes.get("/all", verifyToken, async (req: any, res: any) => {
+  try {
+    const userId = req.user?.userId;
+    const transactions = await Transactions.find({
+      $or: [{ sender: userId }, { recipient: userId }],
+    })
+      .populate("sender", "-password -otp -otpExpiresAt")
+      .populate("recipient", "-password -otp -otpExpiresAt")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, transactions });
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+transactionRoutes.post("/top-up", verifyToken, async (req: any, res: any) => {
+  const { error } = transactionTopUpSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  const { amount } = req.body;
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: "Invalid amount" });
+  }
+  try {
+    const userId = req.user?.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    user.balance += amount;
+    await user.save();
+    const transaction = new Transactions({
+      sender: user._id,
+      recipient: user._id,
+      amount,
+      status: "completed",
+      message: "Top-up",
+      balanceAfterSender: user.balance,
+      balanceAfterRecipient: user.balance,
+      processedAt: new Date(),
+    });
+    await CreditHistory.create([
+      {
+        userId: userId,
+        status: "CREDITED",
+        amount,
+        isTopUp: true,
+      },
+    ]);
+    await transaction.save();
+    return res
+      .status(200)
+      .json({ success: true, message: "Top up added successfully" });
+  } catch (err) {
+    console.error("Error processing top-up:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+transactionRoutes.get(
+  "/credit-history",
+  verifyToken,
+  async (req: any, res: any) => {
+    try {
+      const userId = req.user?.userId;
+      const creditHistory = await CreditHistory.find({ userId }).sort({
+        createdAt: -1,
+      });
+      return res.status(200).json({ success: true, creditHistory });
+    } catch (err) {
+      console.error("Error fetching credit history:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+transactionRoutes.get("/:id", verifyToken, async (req: any, res: any) => {
+  try {
+    const userId = req.user?.userId;
+    const transactionId = req.params.id;
+    const transaction = await Transactions.findOne({
+      _id: transactionId,
+      $or: [{ sender: userId }, { recipient: userId }],
+    })
+      .populate("sender", "-password -otp -otpExpiresAt")
+      .populate("recipient", "-password -otp -otpExpiresAt");
+    if (!transaction) {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
     return res.status(200).json({ success: true, transaction });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error("Transaction error:", err);
+    console.error("Error fetching transaction:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
