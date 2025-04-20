@@ -21,6 +21,8 @@ userRoutes.get("/", async (req: any, res: any) => {
       data: {
         userId: user._id,
         userName: user.userName,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         imageUrl: user.imageUrl,
         balance: user.balance,
@@ -77,13 +79,15 @@ userRoutes.patch("/", async (req: any, res: any) => {
     res.status(200).json({
       message: "User details updated successfully",
       data: {
-        userId: user._id,
-        userName: user.userName,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userName: user.userName,
         imageUrl: user.imageUrl,
-        balance: user.balance,
-        age: user.age,
         phoneNumber: user.phoneNumber,
+        userId: user._id,
+        age: user.age,
+        balance: user.balance,
         isVerified: user.isVerified,
       },
     });

@@ -187,6 +187,7 @@ authRoutes.post("/login", async (req: any, res: any) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        userName: user.userName,
         imageUrl: user.imageUrl,
         phoneNumber: user.phoneNumber,
         userId: user._id,
