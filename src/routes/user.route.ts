@@ -2,7 +2,7 @@ import express from "express";
 import User from "../models/User.model";
 import { userUpdateSchema } from "../validator/user.validator";
 import { uploadToCloudinary } from "../utils/cloudinary";
-import uploadImage from "../middleware/multer..middleware";
+import uploadImage from "../middleware/multer.middleware";
 const userRoutes = express.Router();
 
 userRoutes.get("/", async (req: any, res: any) => {

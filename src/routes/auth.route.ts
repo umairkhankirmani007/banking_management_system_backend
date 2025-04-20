@@ -8,7 +8,7 @@ import {
   refreshTokenSchema,
   requestNewOtpSchema,
 } from "../validator/auth.validator";
-import uploadImage from "../middleware/multer..middleware";
+import uploadImage from "../middleware/multer.middleware";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { generateOTP, getOTP, sendOTPEmail } from "../utils/otp";
 import {
