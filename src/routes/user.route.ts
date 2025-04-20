@@ -85,6 +85,8 @@ userRoutes.patch("/", async (req: any, res: any) => {
         age: user.age,
         phoneNumber: user.phoneNumber,
         isVerified: user.isVerified,
+        firstName: user.firstName,
+        lastName: user.lastName,
       },
     });
   } catch (error) {
