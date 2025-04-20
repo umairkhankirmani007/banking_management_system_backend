@@ -132,7 +132,7 @@ transactionRoutes.post("/top-up", verifyToken, async (req: any, res: any) => {
     return res.status(400).json({ error: error.details[0].message });
   }
   const { amount } = req.body;
-  if (!amount || amount <= 0) {
+  if (parseInt(amount) <= 0) {
     return res.status(400).json({ error: "Invalid amount" });
   }
   try {
@@ -141,7 +141,7 @@ transactionRoutes.post("/top-up", verifyToken, async (req: any, res: any) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    user.balance += amount;
+    user.balance += parseInt(amount, 10);
     await user.save();
     const transaction = new Transactions({
       sender: user._id,
