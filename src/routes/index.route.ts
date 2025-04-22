@@ -12,5 +12,5 @@ router.use("/auth", authRoutes);
 router.use("/users", verifyToken, userRoutes);
 router.use("/payees", verifyToken, userPayeeRoutes);
 router.use("/transactions", verifyToken, transactionRoutes);
-router.use("/contact", contactRoute);
+router.use("/contact", verifyToken, contactRoute);
 export default router;
