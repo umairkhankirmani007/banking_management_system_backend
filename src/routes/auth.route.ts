@@ -195,6 +195,7 @@ authRoutes.post("/login", async (req: any, res: any) => {
         age: user.age,
         balance: user.balance,
         isVerified: user.isVerified,
+        role: user.role,
       },
     });
   } catch (err) {
