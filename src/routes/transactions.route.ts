@@ -72,18 +72,19 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
     await CreditHistory.create([
       {
         userId: senderId,
+        recipientId: recipientId,
         status: "DEBITED",
         amount,
         isTopUp: false,
       },
       {
         userId: recipientId,
+        recipientId: senderId,
         status: "CREDITED",
         amount,
         isTopUp: false,
       },
     ]);
-
     // Create transaction record
     const transaction = new Transactions({
       sender: sender._id,
@@ -156,6 +157,7 @@ transactionRoutes.post("/top-up", verifyToken, async (req: any, res: any) => {
     await CreditHistory.create([
       {
         userId: userId,
+        recipientId: user._id,
         status: "CREDITED",
         amount,
         isTopUp: true,
