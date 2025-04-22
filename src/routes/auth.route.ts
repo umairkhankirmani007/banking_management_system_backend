@@ -30,7 +30,8 @@ authRoutes.post(
       return res.status(400).json({ message: error.details[0].message });
 
     try {
-      const { email, userName, firstName, lastName, phoneNumber, age } = req.body;
+      const { email, userName, firstName, lastName, phoneNumber, age } =
+        req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser)
@@ -216,15 +217,14 @@ authRoutes.post("/request-otp", async (req: any, res: any) => {
     }
     const otp = generateOTP();
     const expiresAt = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
-    await User.findOneAndUpdate(
-      { email },
-      { otp, otpExpiresAt: expiresAt }
-    );
+    await User.findOneAndUpdate({ email }, { otp, otpExpiresAt: expiresAt });
     await sendOTPEmail(email, otp);
     return res.status(200).json({ message: "OTP sent to email" });
   } catch (err) {
     console.error("Error requesting OTP:", err);
-    return res.status(500).json({ message: "Error requesting OTP", error: err });
+    return res
+      .status(500)
+      .json({ message: "Error requesting OTP", error: err });
   }
 });
 

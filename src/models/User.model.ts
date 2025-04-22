@@ -13,6 +13,7 @@ export interface IUser extends Document {
   otpExpiresAt: Date;
   password: string;
   balance: 0;
+  role: "user" | "admin";
 }
 
 const UserSchema: Schema = new Schema(
@@ -29,6 +30,11 @@ const UserSchema: Schema = new Schema(
     otpExpiresAt: { type: Date, default: null },
     balance: { type: Number, default: 0 },
     password: { type: String },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
   },
   { timestamps: true }
 );

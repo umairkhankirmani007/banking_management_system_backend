@@ -28,4 +28,17 @@ contactRoute.post("/", async (req: any, res: any) => {
   }
 });
 
+// ✅ GET - Fetch all contact messages
+contactRoute.get("/", async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: contacts });
+  } catch (err) {
+    console.error("Failed to fetch contact messages:", err);
+    res
+      .status(500)
+      .json({ success: false, error: "Unable to fetch messages." });
+  }
+});
+
 export default contactRoute;
