@@ -29,6 +29,7 @@ userRoutes.get("/", async (req: any, res: any) => {
         age: user.age,
         phoneNumber: user.phoneNumber,
         isVerified: user.isVerified,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -52,6 +53,7 @@ userRoutes.get("/all", async (req: any, res: any) => {
         email: user.email,
         imageUrl: user.imageUrl,
         age: user.age,
+        role: user.role,
       })),
     });
   } catch (error) {
