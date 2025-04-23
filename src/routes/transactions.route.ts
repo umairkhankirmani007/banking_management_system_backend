@@ -210,4 +210,18 @@ transactionRoutes.get("/:id", verifyToken, async (req: any, res: any) => {
   }
 });
 
+transactionRoutes.get("/all/admin", verifyToken, async (req: any, res: any) => {
+  try {
+    const transactions = await Transactions.find()
+      .populate("sender", "-password -otp -otpExpiresAt")
+      .populate("recipient", "-password -otp -otpExpiresAt")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, transactions });
+  } catch (err) {
+    console.error("Error fetching all transactions:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default transactionRoutes;
