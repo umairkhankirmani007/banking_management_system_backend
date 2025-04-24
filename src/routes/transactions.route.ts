@@ -9,6 +9,7 @@ import {
 } from "../validator/transaction.validator";
 import UserPayees from "../models/UserPayees.model";
 import CreditHistory from "../models/CreditHistory.model";
+import { sendPaymentEmail } from "../utils/otp";
 
 const transactionRoutes = express.Router();
 
@@ -47,9 +48,9 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
     }
 
     // Check if recipient is a payee
-    if (!recipientPayeeExists) {
-      return res.status(400).json({ error: "Recipient is not a payee" });
-    }
+    // if (!recipientPayeeExists) {
+    //   return res.status(400).json({ error: "Recipient is not a payee" });
+    // }
 
     // Check sufficient balance
     if (sender.balance < amount) {
@@ -99,6 +100,29 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
     });
 
     await transaction.save();
+
+    if (updatedSender && updatedRecipient) {
+      await Promise.all([
+        sendPaymentEmail({
+          to: sender.email,
+          name: sender.userName,
+          type: "sent",
+          amount: Number(req.body.amount),
+          otherParty: recipient.userName,
+          message,
+          balanceAfter: updatedSender.balance,
+        }),
+        sendPaymentEmail({
+          to: recipient.email,
+          name: recipient.userName,
+          type: "received",
+          amount: Number(req.body.amount),
+          otherParty: sender.userName,
+          message,
+          balanceAfter: updatedRecipient.balance,
+        }),
+      ]);
+    }
 
     return res.status(200).json({
       success: true,

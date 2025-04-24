@@ -108,6 +108,116 @@ const sendOTPEmail = async (email: string, otp: string) => {
   }
 };
 
+type PaymentEmailType = "sent" | "received";
+
+interface SendPaymentEmailParams {
+  to: string;
+  name: string;
+  type: PaymentEmailType;
+  amount: number;
+  otherParty: string;
+  message?: string;
+  balanceAfter: number;
+}
+
+const sendPaymentEmail = async ({
+  to,
+  name,
+  type,
+  amount,
+  otherParty,
+  message,
+  balanceAfter,
+}: SendPaymentEmailParams): Promise<void> => {
+  const subject =
+    type === "sent" ? "Payment Sent Successfully" : "Payment Received";
+  const heading =
+    type === "sent" ? "You've sent a payment!" : "You've received a payment!";
+  const color = type === "sent" ? "#f44336" : "#4CAF50";
+
+  const html = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+          }
+          .header {
+            font-size: 24px;
+            font-weight: bold;
+            color: ${color};
+            margin-bottom: 20px;
+          }
+          .details {
+            font-size: 18px;
+            margin: 10px 0;
+          }
+          .balance {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f1f1;
+            border-radius: 6px;
+            font-weight: bold;
+          }
+          .footer {
+            font-size: 14px;
+            color: #888;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">${heading}</div>
+          <p>Hi ${name},</p>
+          <p class="details">
+            ${type === "sent" ? "You sent" : "You received"} 
+            <strong>$${amount.toFixed(2)}</strong> 
+            ${type === "sent" ? "to" : "from"} <strong>${otherParty}</strong>
+          </p>
+          ${
+            message ? `<p class="details">Message: <em>${message}</em></p>` : ""
+          }
+          <div class="balance">
+            Your updated balance: $${balanceAfter.toFixed(2)}
+          </div>
+          <div class="footer">
+            Thank you for using our service.
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to,
+    subject,
+    html,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Payment email sent to ${to}`);
+  } catch (err) {
+    console.error("Error sending payment email:", err);
+    throw new Error("Failed to send payment email");
+  }
+};
+
 // Function to save OTP with expiration time (10 minutes)
 const saveOTP = async (email: string, otp: string) => {
   const expiresAt = Date.now() + 10 * 60 * 1000; // OTP expires in 10 minutes
@@ -130,4 +240,4 @@ const getOTP = async (email: string) => {
   };
 };
 
-export { generateOTP, sendOTPEmail, saveOTP, getOTP };
+export { generateOTP, sendOTPEmail, saveOTP, getOTP, sendPaymentEmail };
