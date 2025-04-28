@@ -17,6 +17,7 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt";
 import bcrypt from "bcryptjs";
+import { sendTwilioSMS } from "../utils/twilio.utils";
 
 const authRoutes = express.Router();
 
@@ -135,6 +136,10 @@ authRoutes.post("/set-password", async (req: any, res: any) => {
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
+    await sendTwilioSMS(
+      user.phoneNumber,
+      `You've signed up in Banking management system App successfully. Your password has been set.`
+    )
 
     res.status(200).json({
       message: "Password updated successfully",
@@ -178,6 +183,11 @@ authRoutes.post("/login", async (req: any, res: any) => {
     // Generate JWT tokens (access token and refresh token)
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
+
+    await sendTwilioSMS(
+      user.phoneNumber,
+      `You've logged into Banking management system successfully. Login time: ${new Date().toLocaleString()}`
+    );
 
     // Send the response with the tokens
     res.status(200).json({

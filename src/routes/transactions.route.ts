@@ -10,6 +10,7 @@ import {
 import UserPayees from "../models/UserPayees.model";
 import CreditHistory from "../models/CreditHistory.model";
 import { sendPaymentEmail } from "../utils/otp";
+import { sendTwilioSMS } from "../utils/twilio.utils";
 
 const transactionRoutes = express.Router();
 
@@ -123,7 +124,14 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
         }),
       ]);
     }
-
+    await sendTwilioSMS(
+      sender.phoneNumber,
+      `You've sent ${amount} to ${recipient.userName}. Your new balance is ${updatedSender?.balance}.`
+    );
+    await sendTwilioSMS(
+      recipient.phoneNumber,
+      `You've received ${amount} from ${sender.userName}. Your new balance is ${updatedRecipient?.balance}.`
+    );
     return res.status(200).json({
       success: true,
       message: "Transaction completed successfully",
