@@ -124,14 +124,20 @@ transactionRoutes.post("/send", verifyToken, async (req: any, res: any) => {
         }),
       ]);
     }
-    await sendTwilioSMS(
-      sender.phoneNumber,
-      `You've sent ${amount} to ${recipient.userName}. Your new balance is ${updatedSender?.balance}.`
-    );
-    await sendTwilioSMS(
-      recipient.phoneNumber,
-      `You've received ${amount} from ${sender.userName}. Your new balance is ${updatedRecipient?.balance}.`
-    );
+    try {
+      await Promise.all([
+        sendTwilioSMS(
+          sender.phoneNumber,
+          `You've sent ${amount} to ${recipient.userName}. Your new balance is ${updatedSender?.balance}.`
+        ),
+        sendTwilioSMS(
+          recipient.phoneNumber,
+          `You've received ${amount} from ${sender.userName}. Your new balance is ${updatedRecipient?.balance}.`
+        ),
+      ]);
+    } catch (error) {
+      console.log(error);
+    }
     return res.status(200).json({
       success: true,
       message: "Transaction completed successfully",
